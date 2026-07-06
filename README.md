@@ -1,42 +1,67 @@
-# MAL-Analytics: Automated Web Scraping for Anime Intelligence[cite: 2]
+# MAL-Analytics 🎬
 
-**Author:** Anand Saundarya[cite: 2]
+**Automated Insights via Web Scraping** — a Python pipeline that scrapes MyAnimeList's Top Anime rankings and turns them into a clean, analysis-ready CSV.
 
-## Project Overview
-This project leverages Python to bridge the gap between static web content and structured data analytics[cite: 2]. By targeting MyAnimeList, we've built a robust extraction engine that harvests real-time rankings, user scores, and series metadata for the top 200 titles globally[cite: 2]. The goal is to transform messy HTML into a clean, research-ready dataset for trend analysis and recommendation modeling[cite: 2].
+## Overview
 
-## The Tech Stack
-* **Python**[cite: 6]
-* **Requests:** Handles the HTTP protocol to "fetch" raw HTML from the MAL servers with custom headers[cite: 2].
-* **BeautifulSoup:** Parses the raw HTML document into a searchable tree for precise data pinpointing[cite: 2].
-* **Pandas:** Acts as the "Accountant," converting raw lists into a structured CSV database format[cite: 2].
-* **Time:** Manages rate-limiting to ensure the script behaves ethically and prevents IP bans[cite: 2].
+This project bridges static web content and structured data analytics. It targets [MyAnimeList](https://myanimelist.net/topanime.php) and harvests rankings, user scores, and series metadata for the top 200 titles, transforming messy HTML into a research-ready dataset for trend analysis and recommendation modeling.
 
-## The Data Pipeline
-This script functions as an automated data extraction pipeline consisting of four distinct stages[cite: 4]:
+## Tech Stack
 
-1. **Target URLs:** Calculating offsets for pagination across multiple pages (0, 50, 100, 150) to fetch all 200 anime[cite: 2, 4, 6].
-2. **Raw HTML Download:** Executing GET requests with human-like spoofing[cite: 2, 4].
-3. **Data Extraction:** Navigating the DOM to find specific CSS selectors (`<tr class='ranking-list'>`)[cite: 2, 4, 6].
-4. **Clean Spreadsheet Export:** Cleaning raw strings, removing HTML noise, and saving to a final spreadsheet (`top_anime.csv`)[cite: 2, 4].
+| Library | Role |
+|---|---|
+| `requests` | Fetches raw HTML from MAL servers with spoofed browser headers |
+| `BeautifulSoup` (bs4) | Parses HTML into a navigable DOM tree for precise data extraction |
+| `pandas` | Converts scraped records into a structured DataFrame and exports to CSV |
+| `time` | Rate-limits requests to avoid hammering the server |
 
-## Key Features
-* **Browser Spoofing:** A custom User-Agent header mimics a Chrome browser to bypass bot-detection on MAL[cite: 6].
-* **Rate Limiting:** By pausing for 2 seconds between every page request, we avoid triggering server alerts and ensure we don't disrupt the site's performance for other users[cite: 2, 6].
-* **Robust Exception Handling (Fault Tolerance):** Nested try-except blocks ensure that if one anime has missing data, the script skips that row rather than crashing the entire process[cite: 2, 4, 6].
-* **Network Resiliency:** 10-second timeouts prevent the program from hanging on slow connections[cite: 2].
-* **Graceful Shutdown:** Catching `KeyboardInterrupt` allows a safe stop mid-scrape without losing already-collected data, handled via a `finally` block[cite: 2, 4, 6].
-* **Data Sanitization / Wrangling:** Inline string parsing strips units (eps, members, commas) for clean numeric fields[cite: 4, 6].
+## Pipeline
 
-## Data Insights Extracted
-The resulting dataset (`top_anime.csv`) contains 200 rows and 7 data fields[cite: 6]. Initial insights reveal:
-* **Top Score:** 9.26 (Sousou no Frieren)[cite: 6]
-* **Average Score:** 8.66[cite: 6]
-* **Most Common Type:** TV[cite: 6]
-* **Most Popular:** Shingeki no Kyojin (4.38M members)[cite: 6]
+1. **Targeting** — Calculate pagination offsets (`0, 50, 100, 150`) to cover the top 200 anime.
+2. **Downloading** — Send GET requests with a spoofed `User-Agent` header and a 10s timeout.
+3. **Parsing** — Isolate each `<tr class="ranking-list">` row, then drill into `<h3>`, `<span class="score-label">`, and the `information` div for metadata.
+4. **Sanitizing** — Strip whitespace, split combined fields (e.g. `"TV (64 eps)"` → `"TV"` / `"64"`), and remove label noise (e.g. `"3,210,123 members"` → `3210123`).
+5. **Exporting** — Serialize the collected records into `top_anime.csv` via `pandas`.
 
-## Setup and Execution
-1. Clone the repository.
-2. Ensure you have the required libraries installed (`pip install requests beautifulsoup4 pandas`).
-3. Run `main.py`[cite: 1].
-4. The script will automatically scrape the pages and generate a `top_anime.csv` file in the root directory[cite: 1, 4, 6].
+## Data Fields
+
+| Column | Description |
+|---|---|
+| Rank | MAL ranking position |
+| Title | Anime title |
+| Type | TV, Movie, OVA, ONA, etc. |
+| Episodes | Episode count (`?` if still airing/unknown) |
+| Air Dates | Broadcast date range |
+| Members | Number of MAL members who added the title |
+| Score | Average user rating |
+
+## Robustness Features
+
+- **Fault tolerance** — nested `try/except` blocks skip a row with missing data instead of crashing the whole run.
+- **Network resiliency** — a 10-second timeout prevents hangs on slow connections.
+- **Graceful shutdown** — a `finally` block saves whatever has been scraped so far, even on `KeyboardInterrupt`.
+- **Request throttling** — a 2-second pause between page requests to stay a good web citizen.
+
+## Setup
+
+```bash
+pip install -r requirements.txt
+python main.py
+```
+
+Output is saved to `top_anime.csv` in the project root.
+
+## Requirements
+
+- Python 3.9+
+- See `requirements.txt` for package versions
+
+## Notes / Known Limitations
+
+- Relies on MAL's current HTML structure (CSS classes like `ranking-list`, `information`). If MAL redesigns the page, the selectors will need updating.
+- No `?` (unknown episode count) handling beyond passing the raw string through — treat that column as a string, not always an int, in downstream analysis.
+- Scraping is for personal/educational analytics use; review MyAnimeList's [Terms of Service](https://myanimelist.net/about/terms_of_use) and `robots.txt` before scaling up request volume.
+
+## License
+
+Add a license of your choice (e.g. MIT) if you plan to make this repo public.
